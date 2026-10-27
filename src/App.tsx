@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MasterData, SongConfig, AllAnomyStats } from './types';
 import { DEFAULT_STATS, STORAGE_KEY } from './constants';
+import { HomeScreen } from './components/HomeScreen';
 import { PlayScreen } from './components/PlayScreen';
 import { GrowScreen } from './components/GrowScreen';
 
@@ -51,7 +52,7 @@ const FALLBACK_MASTER: MasterData = {
 };
 
 export const App: React.FC = () => {
-  const [activeScreen, setActiveScreen] = useState<'play' | 'grow'>('play');
+  const [activeScreen, setActiveScreen] = useState<'home' | 'play' | 'grow'>('home');
   const [songs, setSongs] = useState<SongConfig[]>([]);
   const [currentSong, setCurrentSong] = useState<SongConfig | null>(null);
   const [formation, setFormation] = useState<Record<number, string | null>>({});
@@ -96,7 +97,6 @@ export const App: React.FC = () => {
         const response = await fetch('/master.json');
         if (!response.ok) throw new Error('Fetch master.json failed');
         const data: MasterData = await response.json();
-        // Normalize paths
         const normalizedSongs = data.songs.map(song => ({
           ...song,
           filename: song.filename.startsWith('/') ? song.filename : `/${song.filename}`,
@@ -122,20 +122,35 @@ export const App: React.FC = () => {
     <div id="game">
       <div id="navButtons">
         <button
+          id="showHomeScreenBtn"
+          className={activeScreen === 'home' ? 'nav-active' : ''}
+          onClick={() => setActiveScreen('home')}
+        >
+          🏠 ルーム
+        </button>
+        <button
           id="showPlayScreenBtn"
           className={activeScreen === 'play' ? 'nav-active' : ''}
           onClick={() => setActiveScreen('play')}
         >
-          演奏画面へ
+          🎵 演奏画面へ
         </button>
         <button
           id="showGrowScreenBtn"
           className={activeScreen === 'grow' ? 'nav-active' : ''}
           onClick={() => setActiveScreen('grow')}
         >
-          育成画面へ
+          🌱 育成画面へ
         </button>
       </div>
+
+      <HomeScreen
+        active={activeScreen === 'home'}
+        onNavigate={screen => setActiveScreen(screen)}
+        stats={stats}
+        songs={songs}
+        setStatus={setStatus}
+      />
 
       <PlayScreen
         active={activeScreen === 'play'}

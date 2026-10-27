@@ -4,6 +4,15 @@ import { INSTRUMENT_DEFINITIONS } from './constants';
 
 export type PlayableInstrument = Tone.PolySynth | Tone.Sampler;
 
+let masterLimiter: Tone.Limiter | null = null;
+
+export function getMasterOutput(): Tone.Limiter {
+  if (!masterLimiter) {
+    masterLimiter = new Tone.Limiter(-1).toDestination();
+  }
+  return masterLimiter;
+}
+
 export function createAnomyInstrument(anomyId: string, statsMap: AllAnomyStats): Tone.PolySynth {
   const stats = statsMap[anomyId] || { softness: 0, echo: 0, brightness: 0 };
   const softnessRate = stats.softness / 100;
@@ -23,6 +32,9 @@ export function createAnomyInstrument(anomyId: string, statsMap: AllAnomyStats):
     },
   });
 
+  // Set safe volume to prevent clipping
+  synth.volume.value = -8;
+
   const filter = new Tone.Filter(1000 + brightnessRate * 4000, 'lowpass');
   const reverb = new Tone.Reverb({
     decay: Math.max(0.1, 0.2 + echoRate * 3),
@@ -31,7 +43,7 @@ export function createAnomyInstrument(anomyId: string, statsMap: AllAnomyStats):
 
   synth.connect(filter);
   filter.connect(reverb);
-  reverb.toDestination();
+  reverb.connect(getMasterOutput());
   return synth;
 }
 
@@ -48,7 +60,9 @@ export async function createInstrumentFromSelection(
   if (def?.type === 'sample') {
     const sampler = new Tone.Sampler({
       urls: { C4: def.file },
-    }).toDestination();
+    });
+    sampler.volume.value = -6;
+    sampler.connect(getMasterOutput());
     await Tone.loaded();
     return sampler;
   }
